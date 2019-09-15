@@ -1,4 +1,4 @@
-import https from "https";
+import { PullsListFilesResponseItem } from "@octokit/rest";
 import { Context } from "probot";
 import Webhooks = require("@octokit/webhooks");
 
@@ -15,10 +15,13 @@ export async function handlePullRequestOpen(
     pull_number: pullRequestNumber
   });
 
+  console.log("FILE LIST");
+
   if (fileList.status !== 200) {
+    console.log("ERROR");
     return;
   }
-
+  console.log("FILE LIST DATA");
   console.log(fileList.data);
 
   const sourceCodeList = await Promise.all(
@@ -27,39 +30,62 @@ export async function handlePullRequestOpen(
         return file.status !== "deleted";
       })
       .map(async file => {
-        return getFileContents(file.raw_url);
+        return await getFileContents(file, owner, repo, context);
       })
   );
 
-  // Do something with raw files
   sourceCodeList.forEach(sourceCode => {
     console.log(sourceCode);
   });
 
-  await context.github.repos.createOrUpdateFile({
-    owner: owner,
-    repo: repo,
-    path: "./src/langapi/translations.json",
-    content: "Hello world!",
-    message: "New translations",
-    author: {
-      name: "Lang",
-      email: "support@langapi.co"
-    }
-  });
+  // await context.github.repos.createOrUpdateFile({
+  //   owner: owner,
+  //   repo: repo,
+  //   path: "./src/langapi/translations.json",
+  //   content: "Hello world!",
+  //   message: "New translations",
+  //   author: {
+  //     name: "Lang",
+  //     email: "support@langapi.co"
+  //   }
+  // });
   return;
 }
 
-async function getFileContents(url: string) {
-  return new Promise((resolve, reject) => {
-    let sourceCode = "";
-    const request = https.get(url, response => {
-      response.on("data", chunk => {
-        sourceCode += chunk;
-      });
-      response.on("end", () => {
-        resolve(sourceCode);
-      });
-    });
+function isMergingIntoMaster(
+  context: Context<Webhooks.WebhookPayloadPullRequest>
+) {
+  return (
+    context.payload.pull_request.head.ref !== "master" &&
+    context.payload.pull_request.base.ref === "master"
+  );
+}
+
+async function getFileContents(
+  file: PullsListFilesResponseItem,
+  owner: string,
+  repo: string,
+  context: Context<Webhooks.WebhookPayloadPullRequest>
+) {
+  const rawFile = await context.github.repos.getContents({
+    owner: owner,
+    repo: repo,
+    path: file.filename,
+    ref: context.payload.pull_request.head.ref
   });
+
+  const content = Buffer.from(rawFile.data.content, "base64").toString();
+  console.log(content);
+  return content;
+  // return new Promise((resolve, reject) => {
+  //   let sourceCode = "";
+  //   const request = https.get(url, response => {
+  //     response.on("data", chunk => {
+  //       sourceCode += chunk;
+  //     });
+  //     response.on("end", () => {
+  //       resolve(sourceCode);
+  //     });
+  //   });
+  // });
 }
