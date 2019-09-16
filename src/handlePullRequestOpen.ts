@@ -1,5 +1,7 @@
 import { PullsListFilesResponseItem } from "@octokit/rest";
+import { extractTrFromFiles } from "langapi";
 import { Context } from "probot";
+import { File } from "./types";
 import Webhooks = require("@octokit/webhooks");
 
 export async function handlePullRequestOpen(
@@ -9,46 +11,45 @@ export async function handlePullRequestOpen(
   const repo = context.payload.repository.name;
   const pullRequestNumber = context.payload.pull_request.number;
 
+  console.log("WHAAAA");
+
   const fileList = await context.github.pulls.listFiles({
     owner: owner,
     repo: repo,
     pull_number: pullRequestNumber
   });
 
-  console.log("FILE LIST");
-
   if (fileList.status !== 200) {
     console.log("ERROR");
     return;
   }
-  console.log("FILE LIST DATA");
-  console.log(fileList.data);
 
-  const sourceCodeList = await Promise.all(
+  // const config = await getConfig(owner, repo, context);
+
+  console.log("GOT CONFIG");
+
+  const sourceFileList: File[] = await Promise.all(
     fileList.data
       .filter(file => {
         return file.status !== "deleted";
       })
       .map(async file => {
-        return await getFileContents(file, owner, repo, context);
+        const sourceCode = await getFileContents(file, owner, repo, context);
+        return {
+          filename: file.filename,
+          sourceCode: sourceCode
+        };
       })
   );
 
-  sourceCodeList.forEach(sourceCode => {
-    console.log(sourceCode);
-  });
+  console.log("SOURCE FILES");
 
-  // await context.github.repos.createOrUpdateFile({
-  //   owner: owner,
-  //   repo: repo,
-  //   path: "./src/langapi/translations.json",
-  //   content: "Hello world!",
-  //   message: "New translations",
-  //   author: {
-  //     name: "Lang",
-  //     email: "support@langapi.co"
-  //   }
-  // });
+  const trCalls = extractTrFromFiles(sourceFileList);
+  console.log("DONE");
+  console.log(trCalls);
+
+  // TODO Figure out how to do coverage
+
   return;
 }
 
