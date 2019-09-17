@@ -1,7 +1,13 @@
 import { PullsListFilesResponseItem } from "@octokit/rest";
-import { extractTrFromFiles } from "langapi";
+import gql from "graphql-tag";
+import { extractTrFromFiles, TranslateFunctionCall } from "langapi";
 import { Context } from "probot";
 import { File } from "./types";
+import {
+  createClientWithToken,
+  getConfig,
+  getValidTranslationRequests
+} from "./utils";
 import Webhooks = require("@octokit/webhooks");
 
 export async function handlePullRequestOpen(
@@ -11,8 +17,6 @@ export async function handlePullRequestOpen(
   const repo = context.payload.repository.name;
   const pullRequestNumber = context.payload.pull_request.number;
 
-  console.log("WHAAAA");
-
   const fileList = await context.github.pulls.listFiles({
     owner: owner,
     repo: repo,
@@ -20,13 +24,10 @@ export async function handlePullRequestOpen(
   });
 
   if (fileList.status !== 200) {
-    console.log("ERROR");
     return;
   }
 
-  // const config = await getConfig(owner, repo, context);
-
-  console.log("GOT CONFIG");
+  const config = await getConfig(owner, repo, context);
 
   const sourceFileList: File[] = await Promise.all(
     fileList.data
@@ -48,6 +49,7 @@ export async function handlePullRequestOpen(
   console.log("DONE");
   console.log(trCalls);
 
+  await sendTrCallsToServer(trCalls, config.apiKey);
   // TODO Figure out how to do coverage
 
   return;
@@ -76,17 +78,48 @@ async function getFileContents(
   });
 
   const content = Buffer.from(rawFile.data.content, "base64").toString();
-  console.log(content);
   return content;
-  // return new Promise((resolve, reject) => {
-  //   let sourceCode = "";
-  //   const request = https.get(url, response => {
-  //     response.on("data", chunk => {
-  //       sourceCode += chunk;
-  //     });
-  //     response.on("end", () => {
-  //       resolve(sourceCode);
-  //     });
-  //   });
-  // });
 }
+
+async function sendTrCallsToServer(
+  translateCalls: TranslateFunctionCall[],
+  config: any
+) {
+  console.log("SENDING");
+  const apolloClient = createClientWithToken(config.apiKey);
+
+  const { batchedTranslationRequests } = getValidTranslationRequests(
+    translateCalls,
+    config
+  );
+
+  const payload = await apolloClient.mutate({
+    mutation: REQUEST_TRANSLATION,
+    variables: {
+      batchTranslationRequests: batchedTranslationRequests,
+      apiKey: config.apiKey
+    }
+  });
+
+  console.log("FUCK");
+}
+
+const REQUEST_TRANSLATION = gql`
+  mutation RequestTranslation(
+    $requests: [BatchTranslationRequestInput!]!
+    $apiKey: String!
+  ) {
+    requestTranslations(batchTranslationRequests: $requests, apiKey: $apiKey) {
+      error {
+        message
+        code
+      }
+      jobId
+      translationTexts {
+        originalText
+        originalLang
+        newLang
+      }
+    }
+  }
+`;
