@@ -1,6 +1,8 @@
 import * as bodyParser from "body-parser";
 import { Application } from "probot";
 import { handlePullRequestOpen } from "./handlePullRequestOpen";
+import { linkInstallationUserToLangProject } from "./installation";
+import { updateTranslations } from "./updateTranslations";
 
 export = (app: Application) => {
   /*
@@ -20,18 +22,21 @@ export = (app: Application) => {
     await dummyFunction();
   });
 
+  app.on("installation.created", linkInstallationUserToLangProject);
+
   /*
    * LANG WEBHOOKS
    */
   app.route("/lang").use(bodyParser.json({ limit: "50mb" }));
+
   app
     .route("/lang")
     .use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
+
   app.route("/lang").post("/", async (req, res) => {
-    const installationId = req.body.installationId;
-    const githubAPI = await app.auth(installationId);
-    res.send("OK");
+    await updateTranslations(req, res, app);
   });
+
   app.route("/lang").get("/", (req, res) => {
     res.send("Hello");
   });

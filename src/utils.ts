@@ -1,4 +1,3 @@
-import Webhooks from "@octokit/webhooks";
 import ApolloClient from "apollo-boost";
 import { ErrorResponse } from "apollo-link-error";
 import { config } from "dotenv";
@@ -7,11 +6,10 @@ import fetch from "isomorphic-unfetch";
 import { Context } from "probot";
 import { BatchTranslationRequest, TranslateFunctionCall } from "./types";
 
-export async function getConfig(
-  owner: string,
-  repo: string,
-  context: Context<Webhooks.WebhookPayloadPullRequest>
-) {
+export const PLACEHOLDER_INSTALLATION_ID = 2002131;
+export const PLACEHOLDER_SENDER_ID = 13922597;
+
+export async function getConfig(owner: string, repo: string, context: Context) {
   const configFile = await context.github.repos.getContents({
     owner: owner,
     repo: repo,
@@ -22,21 +20,13 @@ export async function getConfig(
   const content = Buffer.from(configFile.data.content, "base64").toString();
   const config = JSON.parse(content);
 
-  // TODO: Figure out how to throw errors
-  if (!config.apiKey) {
-    return {};
-  }
-
   return config;
 }
 
-export function createClientWithToken(token: string) {
+export function createClient() {
   return new ApolloClient({
     uri: getBackendUrl(),
     fetch: fetch as any,
-    headers: {
-      authorization: token ? `Bearer ${token}` : ""
-    },
     onError: (e: ErrorResponse) => {
       const { graphQLErrors, networkError } = e;
       if (graphQLErrors) {

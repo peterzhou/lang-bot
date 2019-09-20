@@ -1,13 +1,9 @@
 import { PullsListFilesResponseItem } from "@octokit/rest";
-import gql from "graphql-tag";
 import { extractTrFromFiles, TranslateFunctionCall } from "langapi";
 import { Context } from "probot";
+import { REQUEST_TRANSLATIONS_FROM_GITHUB } from "./graphql/mutations";
 import { File } from "./types";
-import {
-  createClientWithToken,
-  getConfig,
-  getValidTranslationRequests
-} from "./utils";
+import { createClient, getConfig, getValidTranslationRequests } from "./utils";
 import Webhooks = require("@octokit/webhooks");
 
 export async function handlePullRequestOpen(
@@ -43,13 +39,9 @@ export async function handlePullRequestOpen(
       })
   );
 
-  console.log("SOURCE FILES");
-
   const trCalls = extractTrFromFiles(sourceFileList);
-  console.log("DONE");
-  console.log(trCalls);
 
-  await sendTrCallsToServer(trCalls, config.apiKey);
+  await sendTrCallsToServer(trCalls, config, context);
   // TODO Figure out how to do coverage
 
   return;
@@ -83,10 +75,10 @@ async function getFileContents(
 
 async function sendTrCallsToServer(
   translateCalls: TranslateFunctionCall[],
-  config: any
+  config: any,
+  context: Context<Webhooks.WebhookPayloadPullRequest>
 ) {
-  console.log("SENDING");
-  const apolloClient = createClientWithToken(config.apiKey);
+  const apolloClient = createClient();
 
   const { batchedTranslationRequests } = getValidTranslationRequests(
     translateCalls,
@@ -94,32 +86,13 @@ async function sendTrCallsToServer(
   );
 
   const payload = await apolloClient.mutate({
-    mutation: REQUEST_TRANSLATION,
+    mutation: REQUEST_TRANSLATIONS_FROM_GITHUB,
     variables: {
-      batchTranslationRequests: batchedTranslationRequests,
-      apiKey: config.apiKey
+      input: {
+        batchTranslationRequests: batchedTranslationRequests,
+        owner: context.payload.repository.owner.login,
+        repo: context.payload.repository.name
+      }
     }
   });
-
-  console.log("FUCK");
 }
-
-const REQUEST_TRANSLATION = gql`
-  mutation RequestTranslation(
-    $requests: [BatchTranslationRequestInput!]!
-    $apiKey: String!
-  ) {
-    requestTranslations(batchTranslationRequests: $requests, apiKey: $apiKey) {
-      error {
-        message
-        code
-      }
-      jobId
-      translationTexts {
-        originalText
-        originalLang
-        newLang
-      }
-    }
-  }
-`;
