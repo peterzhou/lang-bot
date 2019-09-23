@@ -39,11 +39,15 @@ export async function handlePullRequestOpen(
       })
   );
 
+  console.log(sourceFileList);
   const trCalls = extractTrFromFiles(sourceFileList);
+
+  console.log(trCalls);
 
   await sendTrCallsToServer(trCalls, config, context);
   // TODO Figure out how to do coverage
-
+  // TODO Figure out what to do if no target language is supplied or no config exists
+  // TODO Parse the entire repository on first pull ever
   return;
 }
 
@@ -80,10 +84,10 @@ async function sendTrCallsToServer(
 ) {
   const apolloClient = createClient();
 
-  const { batchedTranslationRequests } = getValidTranslationRequests(
-    translateCalls,
-    config
-  );
+  const {
+    batchedTranslationRequests,
+    invalidTranslationCalls
+  } = getValidTranslationRequests(translateCalls, config);
 
   const payload = await apolloClient.mutate({
     mutation: REQUEST_TRANSLATIONS_FROM_GITHUB,

@@ -6,20 +6,23 @@ export async function updateTranslations(
   res: Response,
   app: Application
 ) {
-  const { owner, installationId, repo, path, json } = req.body;
+  const { owner, installationId, repo, filepath, json } = req.body;
+
+  console.log(installationId);
 
   const githubAPI = await app.auth(installationId);
 
   const originalTranslationsFile = await githubAPI.repos.getContents({
     owner: owner,
     repo: repo,
-    path: path
+    path: filepath
   });
 
+  // TODO: Credential problem????
   const response = await githubAPI.repos.createOrUpdateFile({
     owner: owner,
     repo: repo,
-    path: path,
+    path: filepath,
     message: "[Lang] Updated translations.json",
     content: Base64.encode(json),
     sha: originalTranslationsFile.data.sha,

@@ -12,6 +12,6 @@ export const LINK_GITHUB_INSTALLATION_TO_PROJECT = gql`
   mutation LinkGitHubInstallationToProject(
     $input: LinkGitHubInstallationToProjectInput!
   ) {
-    id
+    linkGitHubInstallationToProject(input: $input)
   }
 `;

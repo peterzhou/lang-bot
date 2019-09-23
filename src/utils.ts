@@ -14,7 +14,9 @@ export async function getConfig(owner: string, repo: string, context: Context) {
     owner: owner,
     repo: repo,
     path: "langapiconfig.json",
-    ref: context.payload.pull_request.head.ref
+    ref: context.payload.pull_request
+      ? context.payload.pull_request.head.ref
+      : "master"
   });
 
   const content = Buffer.from(configFile.data.content, "base64").toString();
@@ -170,6 +172,7 @@ function canBeParsedByMessageFormat(translateCall: TranslateFunctionCall) {
     parser.parse(translateCall.text);
     return true;
   } catch (error) {
+    console.log(error);
     return false;
   }
 }
