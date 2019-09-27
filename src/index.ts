@@ -1,7 +1,10 @@
 import * as bodyParser from "body-parser";
 import { Application } from "probot";
 import { handlePullRequestOpen } from "./handlePullRequestOpen";
-import { linkInstallationUserToLangProject } from "./installation";
+import {
+  linkInstallationUserToLangProject,
+  unlinkInstallationFromLangProject
+} from "./installation";
 import { updateTranslations } from "./updateTranslations";
 
 export = (app: Application) => {
@@ -24,16 +27,18 @@ export = (app: Application) => {
 
   app.on("installation.created", linkInstallationUserToLangProject);
 
+  app.on("installation.deleted", unlinkInstallationFromLangProject);
+
   /*
    * LANG WEBHOOKS
    */
   app.route("/lang").use(bodyParser.json({ limit: "50mb" }));
-
   app
     .route("/lang")
     .use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 
   app.route("/lang").post("/", async (req, res) => {
+    console.log("HERE");
     await updateTranslations(req, res, app);
   });
 
