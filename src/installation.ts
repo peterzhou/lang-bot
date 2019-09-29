@@ -1,6 +1,9 @@
 import Webhooks from "@octokit/webhooks";
 import { Context } from "probot";
-import { LINK_GITHUB_INSTALLATION_TO_PROJECT } from "./graphql/mutations";
+import {
+  LINK_GITHUB_INSTALLATION_TO_PROJECT,
+  UNLINK_GITHUB_INSTALLATION_FROM_PROJECT
+} from "./graphql/mutations";
 import { createClient, getConfig } from "./utils";
 
 export async function linkInstallationUserToLangProject(
@@ -31,10 +34,12 @@ export async function linkInstallationUserToLangProject(
 export async function unlinkInstallationFromLangProject(
   context: Context<Webhooks.WebhookPayloadInstallation>
 ) {
+  console.log("UNLINKING");
   const owner = context.payload.sender.login;
   const installationId = context.payload.installation.id.toString();
   const gitHubUserId = context.payload.sender.id.toString();
-  const repositories = context.payload.repositories;
+
+  console.log(installationId);
 
   const apolloClient = createClient();
 
@@ -43,8 +48,6 @@ export async function unlinkInstallationFromLangProject(
     variables: {
       input: {
         gitHubUserId: gitHubUserId,
-        owner: owner,
-        repo: repositories[0].name,
         installation: installationId
       }
     }

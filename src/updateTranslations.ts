@@ -7,7 +7,15 @@ export async function updateTranslations(
   res: Response,
   app: Application
 ) {
-  const { owner, installation, repo, filepath, json } = req.body;
+  const {
+    owner,
+    installation,
+    repo,
+    filepath,
+    json,
+    sender,
+    branch
+  } = req.body;
 
   console.log(owner);
   console.log(installation);
@@ -18,17 +26,12 @@ export async function updateTranslations(
 
   const githubAPI = await app.auth(installation);
 
-  console.log("AUTHENTICATED");
-
   const originalTranslationsFile = await githubAPI.repos.getContents({
     owner: owner,
     repo: repo,
     path: realFilepath,
-    ref: "master"
+    ref: branch
   });
-
-  console.log("HERE");
-  console.log();
 
   // TODO: Credential problem????
   const response = await githubAPI.repos.createOrUpdateFile({
@@ -38,7 +41,7 @@ export async function updateTranslations(
     message: "[Lang] Updated translations.json",
     content: Base64.encode(JSON.stringify(json)),
     sha: originalTranslationsFile.data.sha,
-    branch: "master"
+    branch: branch
   });
 
   res.send("OK");

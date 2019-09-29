@@ -95,7 +95,9 @@ async function sendTrCallsToServer(
       input: {
         batchTranslationRequests: batchedTranslationRequests,
         owner: context.payload.repository.owner.login,
-        repo: context.payload.repository.name
+        repo: context.payload.repository.name,
+        branch: context.payload.pull_request.head.ref,
+        sender: context.payload.sender.login
       }
     }
   });

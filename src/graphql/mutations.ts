@@ -15,3 +15,11 @@ export const LINK_GITHUB_INSTALLATION_TO_PROJECT = gql`
     linkGitHubInstallationToProject(input: $input)
   }
 `;
+
+export const UNLINK_GITHUB_INSTALLATION_FROM_PROJECT = gql`
+  mutation UnlinkGitHubInstallationFromProject(
+    $input: UnlinkGitHubInstallationFromProjectInput!
+  ) {
+    unlinkGitHubInstallationFromProject(input: $input)
+  }
+`;
