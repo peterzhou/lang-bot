@@ -4,19 +4,30 @@ import { config } from "dotenv";
 import parser from "intl-messageformat-parser";
 import fetch from "isomorphic-unfetch";
 import { Context } from "probot";
-import { BatchTranslationRequest, TranslateFunctionCall } from "./types";
+import { GitHubAPI } from "probot/lib/github";
+import {
+  BatchTranslationRequest,
+  ConfigFile,
+  TranslateFunctionCall
+} from "./types";
 
 export const PLACEHOLDER_INSTALLATION_ID = 2002131;
 export const PLACEHOLDER_SENDER_ID = 13922597;
 
-export async function getConfig(owner: string, repo: string, context: Context) {
-  const configFile = await context.github.repos.getContents({
+export async function getConfig(
+  owner: string,
+  repo: string,
+  github: GitHubAPI,
+  context?: Context
+): Promise<ConfigFile> {
+  const configFile = await github.repos.getContents({
     owner: owner,
     repo: repo,
     path: "langapiconfig.json",
-    ref: context.payload.pull_request
-      ? context.payload.pull_request.head.ref
-      : "master"
+    ref:
+      context && context.payload.pull_request
+        ? context.payload.pull_request.head.ref
+        : "master"
   });
 
   const content = Buffer.from(configFile.data.content, "base64").toString();

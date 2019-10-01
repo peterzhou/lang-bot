@@ -14,7 +14,12 @@ export async function linkInstallationUserToLangProject(
   const installationId = context.payload.installation.id.toString();
   const gitHubUserId = context.payload.sender.id.toString();
   const repositories = context.payload.repositories;
-  const config = await getConfig(owner, repositories[0].name, context);
+  const config = await getConfig(
+    owner,
+    repositories[0].name,
+    context.github,
+    context
+  );
   const apolloClient = createClient();
 
   await apolloClient.mutate({
