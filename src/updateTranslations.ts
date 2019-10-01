@@ -48,7 +48,7 @@ export async function updateTranslations(
       owner: owner,
       repo: repo,
       path: realFilepath,
-      message: "[Lang] Updated translations.json",
+      message: "[Lang] Updated translations",
       content: Base64.encode(JSON.stringify(json)),
       sha: originalTranslationsFile.data.sha,
       branch: branch
@@ -90,7 +90,21 @@ export async function updateTranslationsForYaml(
           ? targetTranslationFile.data.sha
           : undefined;
 
-      const newYamlFile = createYamlFile(originalFileContents, targetLanguage);
+      const newYamlFile = createYamlFile(
+        originalFileContents,
+        targetLanguage,
+        translations
+      );
+
+      const response = await githubAPI.repos.createOrUpdateFile({
+        owner,
+        repo,
+        path: `${targetLanguage}.yaml`,
+        message: "[Lang] Updated translations",
+        content: Base64.encode(newYamlFile),
+        sha,
+        branch
+      });
 
       return "";
     })
