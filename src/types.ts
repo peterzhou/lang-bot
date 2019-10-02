@@ -33,3 +33,17 @@ export type BatchTranslationRequest = {
   languages: string[];
   tags: string[];
 };
+
+export type ConfigFile = {
+  filetype?: string;
+  targetLanguages: string[];
+};
+
+export enum FILE_TYPES {
+  ANDROID_XML = "android-xml",
+  PO = "po",
+  TEXT = "text",
+  STRINGS = "strings",
+  STRINGS_DICT = "stringsdict",
+  YAML = "yaml"
+}

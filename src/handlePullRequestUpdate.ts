@@ -6,7 +6,7 @@ import { File } from "./types";
 import { createClient, getConfig, getValidTranslationRequests } from "./utils";
 import Webhooks = require("@octokit/webhooks");
 
-export async function handlePullRequestOpen(
+export async function handlePullRequestUpdate(
   context: Context<Webhooks.WebhookPayloadPullRequest>
 ) {
   const owner = context.payload.repository.owner.login;
@@ -23,7 +23,7 @@ export async function handlePullRequestOpen(
     return;
   }
 
-  const config = await getConfig(owner, repo, context);
+  const config = await getConfig(owner, repo, context.github, context);
 
   const sourceFileList: File[] = await Promise.all(
     fileList.data
@@ -39,10 +39,7 @@ export async function handlePullRequestOpen(
       })
   );
 
-  console.log(sourceFileList);
   const trCalls = extractTrFromFiles(sourceFileList);
-
-  console.log(trCalls);
 
   await sendTrCallsToServer(trCalls, config, context);
   // TODO Figure out how to do coverage

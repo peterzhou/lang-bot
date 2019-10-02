@@ -1,6 +1,6 @@
 import * as bodyParser from "body-parser";
 import { Application } from "probot";
-import { handlePullRequestOpen } from "./handlePullRequestOpen";
+import { handlePullRequestUpdate } from "./handlePullRequestUpdate";
 import {
   linkInstallationUserToLangProject,
   unlinkInstallationFromLangProject
@@ -19,11 +19,9 @@ export = (app: Application) => {
     await context.github.issues.createComment(issueComment);
   });
 
-  app.on("pull_request.opened", handlePullRequestOpen);
+  app.on("pull_request.opened", handlePullRequestUpdate);
 
-  app.on("pull_request.closed", async context => {
-    await dummyFunction();
-  });
+  app.on("pull_request.synchronize", handlePullRequestUpdate);
 
   app.on("installation.created", linkInstallationUserToLangProject);
 
